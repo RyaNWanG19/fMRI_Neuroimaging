@@ -20,7 +20,7 @@ SUBJECT_IDS_FILE="${SUBJECT_IDS_FILE:-}"
 INDEPENDENT_SUBJECTS_VERIFIED="${INDEPENDENT_SUBJECTS_VERIFIED:-0}"
 NULL_SYMMETRY_VERIFIED="${NULL_SYMMETRY_VERIFIED:-0}"
 RESAMPLING_VERIFICATION_NOTE="${RESAMPLING_VERIFICATION_NOTE:-}"
-MATLAB_BIN="${MATLAB_BIN:-}"
+MATLAB_BIN="${MATLAB_BIN:-/jhpce/shared/jhpce/core/matlab/R2025a/bin/matlab}"
 
 # Slurm batch shells may not initialize Environment Modules even when the
 # login shell does. Use the same MATLAB module convention as the project's
@@ -108,54 +108,5 @@ export NULL_SYMMETRY_VERIFIED RESAMPLING_VERIFICATION_NOTE
 
 echo "MATLAB_BIN: ${MATLAB_BIN}"
 
-"${MATLAB_BIN}" -batch "
-moduleDir = fullfile(getenv('REPO_DIR'), 'code', 'residual_contrast', ...
-    'analysis', 'wm_population_omnibus');
-addpath(moduleDir);
-
-cfg = struct();
-cfg.repoRoot = getenv('REPO_DIR');
-cfg.dataFile = getenv('DATA_FILE');
-cfg.hrfModelName = getenv('HRF_MODEL');
-cfg.contrastName = getenv('CONTRAST_NAME');
-cfg.smokeTest = strcmp(getenv('SMOKE_TEST'), '1');
-cfg.makePlots = strcmp(getenv('MAKE_PLOTS'), '1');
-
-nPermText = getenv('NPERM');
-if ~isempty(nPermText)
-    cfg.nPerm = str2double(nPermText);
-    assert(isfinite(cfg.nPerm) && cfg.nPerm >= 1 && cfg.nPerm == floor(cfg.nPerm), ...
-        'NPERM must be a positive integer.');
-end
-
-jobID = getenv('SLURM_JOB_ID');
-if isempty(jobID)
-    jobID = datestr(now, 'yyyymmddTHHMMSSFFF');
-end
-cfg.outputDir = fullfile(getenv('OUTPUT_ROOT'), cfg.contrastName, ...
-    cfg.hrfModelName, ['job_' jobID]);
-
-if ~cfg.smokeTest
-    idPayload = load(getenv('SUBJECT_IDS_FILE'));
-    candidateNames = {'subjectIDs', 'subject_ids', 'subjIDs'};
-    subjectIDs = [];
-    for k = 1:numel(candidateNames)
-        if isfield(idPayload, candidateNames{k})
-            subjectIDs = idPayload.(candidateNames{k});
-            break
-        end
-    end
-    assert(~isempty(subjectIDs), ...
-        'SUBJECT_IDS_FILE must contain subjectIDs, subject_ids, or subjIDs.');
-    cfg.subjectIDs = subjectIDs;
-end
-
-cfg.resampling.independentSubjectsVerified = ...
-    strcmp(getenv('INDEPENDENT_SUBJECTS_VERIFIED'), '1');
-cfg.resampling.nullSymmetryVerified = ...
-    strcmp(getenv('NULL_SYMMETRY_VERIFIED'), '1');
-cfg.resampling.verificationNote = getenv('RESAMPLING_VERIFICATION_NOTE');
-
-results = run_wm_population_omnibus(cfg);
-fprintf('WM temporal-omnibus results saved to: %s\\n', results.config.outputDir);
-"
+MATLAB_RUNNER="addpath(fullfile(getenv('REPO_DIR'),'code','residual_contrast','analysis','wm_population_omnibus')); run_wm_population_omnibus_jhpce_env;"
+"${MATLAB_BIN}" -batch "${MATLAB_RUNNER}"
