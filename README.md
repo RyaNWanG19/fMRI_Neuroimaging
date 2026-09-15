@@ -1,5 +1,39 @@
 This repository contains the analysis pipeline and code used for the thesis investigating systematic, task-dependent information within fMRI residuals. Using datasets from the Human Connectome Project (HCP), this project tests whether residuals contain structured information that can reliably predict task states.
 
+## WM Population Temporal-Omnibus Test
+
+`code/residual_contrast/analysis/wm_population_omnibus` contains the ROI-level
+population analysis. For each parcel it tests the complete mean paired-difference
+curve with `S = sum(T(t).^2)`, calibrates that statistic by subject-level sign
+flipping, and applies Holm correction across all planned parcels for one contrast
+and one HRF model. It operates directly on subject differences and is separate
+from classifier importance or lag-specific inference.
+
+The HRF-model files contain arrays in `[ROI x time x subject x condition]` order.
+The driver verifies the repository's WM slots (0-back categories in 1--4 and
+2-back categories in 5--8), constructs a category load-difference interaction,
+and records the permutation to `[subject x ROI x time]`.
+
+The files do not contain real HCP IDs or family/dependence metadata. Consequently,
+a full run deliberately requires aligned subject IDs and documented verification
+that the rows are independent:
+
+```matlab
+addpath('code/residual_contrast/analysis/wm_population_omnibus');
+cfg = struct();
+cfg.hrfModelName = 'cHRF';
+cfg.contrastName = 'Body_LoadDiff_vs_Face_LoadDiff';
+cfg.subjectIDs = subjectIDs;  % real IDs aligned to Results dimension 3
+cfg.resampling.independentSubjectsVerified = true;
+cfg.resampling.nullSymmetryVerified = true;
+cfg.resampling.verificationNote = 'Describe the independence and null-symmetry checks here';
+results = run_wm_population_omnibus(cfg); % default B = 99,999
+```
+
+For a non-inferential smoke run, set `cfg.smokeTest = true` (default B = 999).
+The minimum attainable raw permutation p-value is `1/(B+1)`; smoke-run p-values
+must not be reported as final inference.
+
 ## WM ROI Influence Elastic-Net Module
 
 The separate module in `code/residual_contrast/analysis/wm_roi_influence` identifies stable, high-confidence influential candidate parcels for WM residual interaction contrasts without modifying the existing linear-SVM pipeline.
@@ -51,3 +85,35 @@ run_roi_influence_local_postprocess(resultFile);
 ```
 
 Plots are written to a `plots/` subfolder. If all three HRF model `.mat` files are provided, local postprocess also writes `hrf_model_comparison.csv` with descriptive deltas only.
+
+### Downstream ROI Evidence Tables
+
+After cluster outputs have been copied locally, build aggregate downstream tables and figures across completed ROI influence runs:
+
+```matlab
+addpath(genpath('code/residual_contrast/analysis/wm_roi_influence'));
+outputs = run_roi_influence_downstream_analysis();
+```
+
+The downstream driver scans `data/task_residual/roi_influence` first, then `data/task_residual/roi_influence_elasticnet`, and writes:
+
+- `roi_influence_all_runs_downstream.csv`: one row per parcel per run with the five evidence flags.
+- `roi_influence_ranked_candidates.csv`: all rows sorted by convergent evidence.
+- `roi_influence_hrf_consensus.csv`: one row per parcel/contrast summarizing support across HRF models.
+- `roi_influence_network_summary.csv`: descriptive network-level summaries when network labels are available.
+- `roi_influence_run_inventory.csv`: run metadata and thresholds used by the downstream pass.
+
+For case-by-case inspection by HRF model, including five-evidence visualizations and Canlab orthviews ROI distribution maps:
+
+```matlab
+addpath(genpath('code/residual_contrast/analysis/wm_roi_influence'));
+outputs = run_roi_influence_hrf_casewise_analysis();
+```
+
+This writes one folder per model under `data/task_residual/roi_influence_elasticnet/casewise_by_hrf/`:
+
+- `cHRF/`
+- `cHRFderiv/`
+- `sHRF/`
+
+Each folder contains the all-ROI evidence table, top candidates, evidence-specific top/support tables, a five-evidence summary, per-HRF figures, and orthviews images for candidate ROI distributions.
