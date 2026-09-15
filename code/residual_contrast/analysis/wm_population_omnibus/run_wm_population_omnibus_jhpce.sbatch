@@ -20,6 +20,44 @@ SUBJECT_IDS_FILE="${SUBJECT_IDS_FILE:-}"
 INDEPENDENT_SUBJECTS_VERIFIED="${INDEPENDENT_SUBJECTS_VERIFIED:-0}"
 NULL_SYMMETRY_VERIFIED="${NULL_SYMMETRY_VERIFIED:-0}"
 RESAMPLING_VERIFICATION_NOTE="${RESAMPLING_VERIFICATION_NOTE:-}"
+MATLAB_BIN="${MATLAB_BIN:-}"
+
+# Slurm batch shells may not initialize Environment Modules even when the
+# login shell does. Use the same MATLAB module convention as the project's
+# earlier JHPCE jobs, while permitting an explicit executable override.
+if [[ -z "${MATLAB_BIN}" ]]; then
+    if ! command -v module >/dev/null 2>&1; then
+        if [[ -r /etc/profile.d/modules.sh ]]; then
+            # shellcheck disable=SC1091
+            source /etc/profile.d/modules.sh
+        elif [[ -r /usr/share/Modules/init/bash ]]; then
+            # shellcheck disable=SC1091
+            source /usr/share/Modules/init/bash
+        fi
+    fi
+
+    if ! command -v matlab >/dev/null 2>&1 && command -v module >/dev/null 2>&1; then
+        if module load matlab 2>/dev/null; then
+            :
+        elif module load matlab/R2025a 2>/dev/null; then
+            :
+        fi
+    fi
+
+    if command -v matlab >/dev/null 2>&1; then
+        MATLAB_BIN="$(command -v matlab)"
+    elif [[ -f /users/rwang/MATLAB && -x /users/rwang/MATLAB ]]; then
+        MATLAB_BIN=/users/rwang/MATLAB
+    elif [[ -x /users/rwang/MATLAB/bin/matlab ]]; then
+        MATLAB_BIN=/users/rwang/MATLAB/bin/matlab
+    fi
+fi
+
+if [[ -z "${MATLAB_BIN}" || ! -x "${MATLAB_BIN}" ]]; then
+    echo "MATLAB executable unavailable on compute node." >&2
+    echo "Run 'module avail matlab' or submit with MATLAB_BIN=/full/path/to/matlab." >&2
+    exit 127
+fi
 
 case "${HRF_MODEL,,}" in
     chrf)
@@ -68,7 +106,9 @@ export REPO_DIR DATA_FILE OUTPUT_ROOT HRF_MODEL CONTRAST_NAME SMOKE_TEST
 export MAKE_PLOTS NPERM SUBJECT_IDS_FILE INDEPENDENT_SUBJECTS_VERIFIED
 export NULL_SYMMETRY_VERIFIED RESAMPLING_VERIFICATION_NOTE
 
-matlab -batch "
+echo "MATLAB_BIN: ${MATLAB_BIN}"
+
+"${MATLAB_BIN}" -batch "
 moduleDir = fullfile(getenv('REPO_DIR'), 'code', 'residual_contrast', ...
     'analysis', 'wm_population_omnibus');
 addpath(moduleDir);
