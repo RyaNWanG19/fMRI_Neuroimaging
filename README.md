@@ -34,6 +34,14 @@ For a non-inferential smoke run, set `cfg.smokeTest = true` (default B = 999).
 The minimum attainable raw permutation p-value is `1/(B+1)`; smoke-run p-values
 must not be reported as final inference.
 
+On JHPCE, submit
+`code/residual_contrast/analysis/wm_population_omnibus/run_wm_population_omnibus_jhpce.sbatch`.
+It reads the HRF files from
+`/users/rwang/fMRI_Neuroimaging/data/task_residual` by default. Environment
+variables can override the repository, data, output, model, contrast, and
+permutation settings; full inference also requires an aligned subject-ID MAT
+file and explicit resampling-assumption confirmations.
+
 ## WM ROI Influence Elastic-Net Module
 
 The separate module in `code/residual_contrast/analysis/wm_roi_influence` identifies stable, high-confidence influential candidate parcels for WM residual interaction contrasts without modifying the existing linear-SVM pipeline.
