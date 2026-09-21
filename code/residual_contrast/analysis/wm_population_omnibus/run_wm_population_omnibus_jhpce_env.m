@@ -27,7 +27,7 @@ end
 cfg.outputDir = fullfile(outputRoot, cfg.contrastName, ...
     cfg.hrfModelName, ['job_' jobID]);
 
-if ~cfg.smokeTest
+if ~isempty(getenv('SUBJECT_IDS_FILE'))
     idPayload = load(required_env('SUBJECT_IDS_FILE'));
     candidateNames = {'subjectIDs', 'subject_ids', 'subjIDs'};
     subjectIDs = [];
@@ -44,7 +44,12 @@ end
 
 cfg.resampling.independentSubjectsVerified = env_flag('INDEPENDENT_SUBJECTS_VERIFIED');
 cfg.resampling.nullSymmetryVerified = env_flag('NULL_SYMMETRY_VERIFIED');
+cfg.resampling.nullSymmetryAssumed = env_flag('NULL_SYMMETRY_ASSUMED');
 cfg.resampling.verificationNote = getenv('RESAMPLING_VERIFICATION_NOTE');
+cfg.runDiagnostics = env_flag('RUN_DIAGNOSTICS');
+if ~isempty(getenv('NBOOTSTRAP'))
+    cfg.nBootstrap = str2double(getenv('NBOOTSTRAP'));
+end
 
 results = run_wm_population_omnibus(cfg);
 fprintf('WM temporal-omnibus results saved to: %s\n', results.config.outputDir);

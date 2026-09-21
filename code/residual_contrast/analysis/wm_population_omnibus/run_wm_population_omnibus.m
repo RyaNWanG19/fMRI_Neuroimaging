@@ -8,11 +8,11 @@ function results = run_wm_population_omnibus(cfg)
 % then temporal_omnibus_signflip maps [ROI x time x subject] to canonical
 % [subject x ROI x time].
 %
-% Full inference requires real IDs plus verified independent rows:
-%   cfg.subjectIDs = ...; % aligned with Results dimension 3
+% Full inference requires documented independent rows; absent real IDs,
+% row_001 etc. track exclusions within this file, not across models.
 %   cfg.resampling.independentSubjectsVerified = true;
-%   cfg.resampling.nullSymmetryVerified = true;
-%   cfg.resampling.verificationNote = 'How independence and symmetry were justified';
+%   cfg.resampling.nullSymmetryAssumed = true;
+%   cfg.resampling.verificationNote = 'Independence confirmation; symmetry assumed';
 %
 % Set cfg.smokeTest=true for a non-inferential small run.
 
@@ -44,15 +44,15 @@ nSubject = sz(3);
 
 [pair, contrastLabel] = resolve_contrast(cfg.contrastName, conditionMap);
 % pair = [2back_A, 0back_A, 2back_B, 0back_B]
-D = (residuals(:, :, :, pair(1)) - residuals(:, :, :, pair(2))) - ...
-    (residuals(:, :, :, pair(3)) - residuals(:, :, :, pair(4)));
+D = (double(residuals(:, :, :, pair(1))) - double(residuals(:, :, :, pair(2)))) - ...
+    (double(residuals(:, :, :, pair(3))) - double(residuals(:, :, :, pair(4))));
 clear residuals payload
 
 if isfield(cfg, 'subjectIDs') && ~isempty(cfg.subjectIDs)
     subjectIDs = cfg.subjectIDs;
     subjectIDSource = 'cfg.subjectIDs';
 else
-    subjectIDs = (1:nSubject)';
+    subjectIDs = string(compose('row_%03d', (1:nSubject)'));
     subjectIDSource = ['ordinal row indices; source MAT file contains no real HCP IDs'];
 end
 if numel(subjectIDs) ~= nSubject
@@ -87,11 +87,6 @@ if cfg.smokeTest
 else
     cfg.runMode = 'inference';
     cfg = set_default(cfg, 'nPerm', 99999);
-    if strcmp(subjectIDSource(1:7), 'ordinal')
-        error('run_wm_population_omnibus:RealSubjectIDsRequired', ...
-            ['The HRF-model MAT files do not store real subject IDs. Supply ', ...
-             'cfg.subjectIDs aligned with Results dimension 3 before inference.']);
-    end
 end
 if ~isfield(cfg, 'resampling') || ~isstruct(cfg.resampling)
     cfg.resampling = struct();

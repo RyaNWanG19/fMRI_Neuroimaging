@@ -214,9 +214,10 @@ for r = find(hasObservedDegeneracy)'
 end
 
 inferenceValid = strcmpi(cfg.runMode, 'inference') && ...
-    cfg.resampling.independentSubjectsVerified && cfg.resampling.nullSymmetryVerified;
+    cfg.resampling.independentSubjectsVerified && ...
+    (cfg.resampling.nullSymmetryVerified || cfg.resampling.nullSymmetryAssumed);
 if inferenceValid
-    inferenceStatus = "inferential";
+    inferenceStatus = "conditional_on_independence_and_null_symmetry";
 else
     inferenceStatus = "non-inferential_" + string(cfg.runMode);
 end
@@ -271,6 +272,9 @@ results.summaryTable = summaryTable;
 results.S_perm = sPerm;
 results.permutationSigns = permutationSigns;
 results.outputFiles = struct();
+if cfg.runDiagnostics
+    results.sensitivity = omnibus_sensitivity(D, results);
+end
 
 if cfg.saveOutputs
     results = save_outputs(results);
@@ -297,12 +301,16 @@ cfg = set_default(cfg, 'rankPlotTopN', 50);
 cfg = set_default(cfg, 'curvesPerPage', 12);
 cfg = set_default(cfg, 'storePermutationStatistics', false);
 cfg = set_default(cfg, 'storePermutationSigns', false);
+cfg = set_default(cfg, 'runDiagnostics', false);
+cfg = set_default(cfg, 'nBootstrap', 99999);
+validateattributes(cfg.nBootstrap, {'numeric'}, {'scalar','integer','positive'});
 if ~isfield(cfg, 'resampling') || ~isstruct(cfg.resampling)
     cfg.resampling = struct();
 end
 cfg.resampling = set_default(cfg.resampling, 'scheme', 'independent-subject-signflip');
 cfg.resampling = set_default(cfg.resampling, 'independentSubjectsVerified', false);
 cfg.resampling = set_default(cfg.resampling, 'nullSymmetryVerified', false);
+cfg.resampling = set_default(cfg.resampling, 'nullSymmetryAssumed', false);
 cfg.resampling = set_default(cfg.resampling, 'verificationNote', '');
 
 validateattributes(cfg.nPerm, {'numeric'}, {'scalar','integer','positive'});
@@ -325,11 +333,12 @@ if strcmpi(cfg.runMode, 'inference')
              'after verifying that rows are independent subjects (for example, an ', ...
              'unrelated HCP sample). Use runMode=''smoke-test'' only for non-inferential checks.']);
     end
-    if ~isequal(cfg.resampling.nullSymmetryVerified, true)
+    if ~isequal(cfg.resampling.nullSymmetryVerified, true) && ...
+            ~isequal(cfg.resampling.nullSymmetryAssumed, true)
         error('temporal_omnibus_signflip:NullSymmetryUnresolved', ...
             ['Exact subject-level sign flipping also requires an appropriate ', ...
              'symmetry assumption for the paired-difference curves. Set ', ...
-             'cfg.resampling.nullSymmetryVerified=true only with a documented justification.']);
+             'cfg.resampling.nullSymmetryAssumed=true to accept it as a documented assumption.']);
     end
     if isempty(strtrim(char(string(cfg.resampling.verificationNote))))
         error('temporal_omnibus_signflip:MissingVerificationNote', ...
@@ -429,6 +438,8 @@ matFile = fullfile(cfg.outputDir, 'temporal_omnibus_results.mat');
 csvFile = fullfile(cfg.outputDir, 'temporal_omnibus_roi_summary.csv');
 rankFile = fullfile(cfg.outputDir, 'ranked_roi_omnibus_evidence.png');
 protected = {matFile, csvFile};
+diagnosticFile = fullfile(cfg.outputDir, 'omnibus_sensitivity.csv');
+if isfield(results, 'sensitivity'), protected{end+1} = diagnosticFile; end
 if cfg.makePlots
     protected{end+1} = rankFile; %#ok<AGROW>
 end
@@ -440,6 +451,10 @@ end
 
 writetable(results.summaryTable, csvFile);
 results.outputFiles.csv = csvFile;
+if isfield(results, 'sensitivity')
+    writetable(results.sensitivity.table, diagnosticFile);
+    results.outputFiles.sensitivityCSV = diagnosticFile;
+end
 if cfg.makePlots
     make_rank_plot(results, rankFile);
     results.outputFiles.rankedPlot = rankFile;

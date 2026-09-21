@@ -14,19 +14,22 @@ The driver verifies the repository's WM slots (0-back categories in 1--4 and
 2-back categories in 5--8), constructs a category load-difference interaction,
 and records the permutation to `[subject x ROI x time]`.
 
-The files do not contain real HCP IDs or family/dependence metadata. Consequently,
-a full run deliberately requires aligned subject IDs and documented verification
-that the rows are independent:
+The files do not contain real HCP IDs or family/dependence metadata. A full run
+requires documented confirmation that the rows are independent. Real IDs are
+optional: absent IDs, row_001 etc. track observations within each model file.
+These labels do not establish matching subjects across models.
 
 ```matlab
 addpath('code/residual_contrast/analysis/wm_population_omnibus');
 cfg = struct();
 cfg.hrfModelName = 'cHRF';
 cfg.contrastName = 'Body_LoadDiff_vs_Face_LoadDiff';
-cfg.subjectIDs = subjectIDs;  % real IDs aligned to Results dimension 3
+% cfg.subjectIDs = subjectIDs; % optional aligned real IDs
 cfg.resampling.independentSubjectsVerified = true;
-cfg.resampling.nullSymmetryVerified = true;
-cfg.resampling.verificationNote = 'Describe the independence and null-symmetry checks here';
+cfg.resampling.nullSymmetryAssumed = true;
+cfg.resampling.verificationNote = 'Owner confirms distinct unrelated participants; null symmetry assumed';
+cfg.runDiagnostics = true;
+cfg.nBootstrap = 99999;
 results = run_wm_population_omnibus(cfg); % default B = 99,999
 ```
 
@@ -39,8 +42,26 @@ On JHPCE, submit
 It reads the HRF files from
 `/users/rwang/fMRI_Neuroimaging/data/task_residual` by default. Environment
 variables can override the repository, data, output, model, contrast, and
-permutation settings; full inference also requires an aligned subject-ID MAT
-file and explicit resampling-assumption confirmations.
+permutation settings. The full-run helper below uses the actual data files in
+`/users/rwang`, records the owner's independence confirmation and accepted
+symmetry assumption, and submits all three models:
+
+```bash
+bash code/residual_contrast/analysis/wm_population_omnibus/submit_wm_population_full_jhpce.sh
+```
+
+Each job runs 99,999 sign flips and 99,999 centered whole-curve bootstrap
+replicates per ROI. The latter is an approximate sensitivity analysis allowing
+asymmetry, with iid retained subjects and suitable finite moments required.
+It is not an exact test or a substitute for the primary sign-flip result.
+Both corrections include all 489 planned ROIs, separately per model.
+`omnibus_sensitivity.csv` reports centered skewness, extreme standardized
+residuals, leave-one-out mean influence, bootstrap p-values, and disagreements.
+Diagnostics do not automatically exclude subjects or prove symmetry. Bootstrap
+results for nonzero constant cells are marked unreliable and assigned p=1.
+Methods background: [bootstrap principle and null calibration](https://www.stat.cmu.edu/~cshalizi/uADA/19/lectures/ch06.pdf).
+The configuration records assumptions; `inferenceValid` means eligible under
+those assumptions, not that their truth was established by the program.
 
 ## WM ROI Influence Elastic-Net Module
 

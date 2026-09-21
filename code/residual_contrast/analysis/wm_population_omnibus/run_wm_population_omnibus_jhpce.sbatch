@@ -19,6 +19,9 @@ NPERM="${NPERM:-}"
 SUBJECT_IDS_FILE="${SUBJECT_IDS_FILE:-}"
 INDEPENDENT_SUBJECTS_VERIFIED="${INDEPENDENT_SUBJECTS_VERIFIED:-0}"
 NULL_SYMMETRY_VERIFIED="${NULL_SYMMETRY_VERIFIED:-0}"
+NULL_SYMMETRY_ASSUMED="${NULL_SYMMETRY_ASSUMED:-0}"
+RUN_DIAGNOSTICS="${RUN_DIAGNOSTICS:-0}"
+NBOOTSTRAP="${NBOOTSTRAP:-99999}"
 RESAMPLING_VERIFICATION_NOTE="${RESAMPLING_VERIFICATION_NOTE:-}"
 MATLAB_BIN="${MATLAB_BIN:-/jhpce/shared/jhpce/core/matlab/R2025a/bin/matlab}"
 
@@ -81,16 +84,16 @@ if [[ ! -f "${DATA_FILE}" ]]; then
 fi
 
 if [[ "${SMOKE_TEST}" != "1" ]]; then
-    if [[ -z "${SUBJECT_IDS_FILE}" || ! -f "${SUBJECT_IDS_FILE}" ]]; then
-        echo "A valid SUBJECT_IDS_FILE is required for a full inferential run." >&2
+    if [[ -n "${SUBJECT_IDS_FILE}" && ! -f "${SUBJECT_IDS_FILE}" ]]; then
+        echo "SUBJECT_IDS_FILE was specified but does not exist." >&2
         exit 2
     fi
     if [[ "${INDEPENDENT_SUBJECTS_VERIFIED}" != "1" ]]; then
         echo "Set INDEPENDENT_SUBJECTS_VERIFIED=1 only after verifying independent subject rows." >&2
         exit 2
     fi
-    if [[ "${NULL_SYMMETRY_VERIFIED}" != "1" ]]; then
-        echo "Set NULL_SYMMETRY_VERIFIED=1 only after justifying sign-flip null symmetry." >&2
+    if [[ "${NULL_SYMMETRY_VERIFIED}" != "1" && "${NULL_SYMMETRY_ASSUMED}" != "1" ]]; then
+        echo "Set NULL_SYMMETRY_ASSUMED=1 to document the accepted modeling assumption." >&2
         exit 2
     fi
     if [[ -z "${RESAMPLING_VERIFICATION_NOTE}" ]]; then
@@ -105,6 +108,7 @@ cd "${REPO_DIR}"
 export REPO_DIR DATA_FILE OUTPUT_ROOT HRF_MODEL CONTRAST_NAME SMOKE_TEST
 export MAKE_PLOTS NPERM SUBJECT_IDS_FILE INDEPENDENT_SUBJECTS_VERIFIED
 export NULL_SYMMETRY_VERIFIED RESAMPLING_VERIFICATION_NOTE
+export NULL_SYMMETRY_ASSUMED RUN_DIAGNOSTICS NBOOTSTRAP
 
 echo "MATLAB_BIN: ${MATLAB_BIN}"
 
