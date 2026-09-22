@@ -1,5 +1,19 @@
 This repository contains the analysis pipeline and code used for the thesis investigating systematic, task-dependent information within fMRI residuals. Using datasets from the Human Connectome Project (HCP), this project tests whether residuals contain structured information that can reliably predict task states.
 
+## Paired-Contrast Tensor Decomposition (Option B)
+
+The separate [paired tensor module](code/residual_contrast/analysis/paired_tensor/README.md)
+fits signed CP decompositions to region x time x subject contrast tensors.
+It includes multiple starts, a rank sweep, an uncentered SVD benchmark,
+split-half component reproducibility, explicit subject-exclusion auditing,
+and CSV/MAT/figure outputs. It is descriptive and does not replace population
+inference. The default uses the WM body-versus-face load interaction.
+
+```matlab
+addpath('code/residual_contrast/analysis/paired_tensor');
+results = run_paired_tensor(struct('hrfModelName','cHRF'));
+```
+
 ## WM Population Temporal-Omnibus Test
 
 `code/residual_contrast/analysis/wm_population_omnibus` contains the ROI-level
