@@ -10,6 +10,12 @@ cfg.repoRoot = repoDir;
 cfg.dataFile = dataFile;
 cfg.hrfModelName = required_env('HRF_MODEL');
 cfg.contrastName = required_env('CONTRAST_NAME');
+analysisKind = getenv('WM_ANALYSIS');
+if strcmp(analysisKind, 'load-differences')
+    cfg.contrastName = 'AllFourCategory_LoadDiff';
+elseif ~isempty(analysisKind) && ~strcmp(analysisKind, 'interaction')
+    error('WM_ANALYSIS must be interaction or load-differences.');
+end
 cfg.smokeTest = env_flag('SMOKE_TEST');
 cfg.makePlots = env_flag('MAKE_PLOTS');
 
@@ -51,7 +57,11 @@ if ~isempty(getenv('NBOOTSTRAP'))
     cfg.nBootstrap = str2double(getenv('NBOOTSTRAP'));
 end
 
-results = run_wm_population_omnibus(cfg);
+if strcmp(analysisKind, 'load-differences')
+    results = run_wm_load_omnibus(cfg);
+else
+    results = run_wm_population_omnibus(cfg);
+end
 fprintf('WM temporal-omnibus results saved to: %s\n', results.config.outputDir);
 end
 
