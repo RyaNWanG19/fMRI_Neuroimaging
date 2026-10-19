@@ -1,3 +1,0 @@
-scenario,subjects,family_cells,experiments,bootstrap_replicates,simultaneous_coverage,coverage_monte_carlo_se,pointwise_joint_coverage,mean_band_width
-Gaussian_AR1,200,164,200,999,0.945,0.0161206389451535,0.06,0.543492659890281
-Asymmetric_AR1,200,164,200,999,0.915,0.019719913792915,0.09,0.54228850185441

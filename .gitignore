@@ -12,3 +12,25 @@
 
 *.fig
 *.png
+
+# Generated analysis results. Keep research inputs and source files tracked.
+/data/**/*.csv
+/data/autocorrelation_results/*.mat
+/data/autocorrelation_results/*.nii
+/data/observed_residual_results/**/*.mat
+/data/task_residual/result_*.mat
+/data/task_residual/wm_pairdiff_model_permtests*.mat
+/data/task_residual/Body_LoadDiff_vs_Face_LoadDiff/**/*.mat
+/data/task_residual/jhpce_outputs_wm_population_omnibus_full/**/*.mat
+/data/task_residual/paired_tensor/**/*.mat
+/data/task_residual/wm_population_diagnostics_*/**/*.mat
+/data/task_residual/wm_region_clustering_outputs/**/*.mat
+/data/task_residual/wm_load_omnibus/
+/functional_clustering/WM_majority_overlap_results.mat
+/outputs/**/*.csv
+/outputs/**/*.mat
+/outputs/**/*.zip
+
+# Installed dependencies and temporary presentation snapshots.
+node_modules/
+.chart-data-*/
