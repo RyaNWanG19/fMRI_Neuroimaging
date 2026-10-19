@@ -77,6 +77,27 @@ Methods background: [bootstrap principle and null calibration](https://www.stat.
 The configuration records assumptions; `inferenceValid` means eligible under
 those assumptions, not that their truth was established by the program.
 
+## WM Simultaneous Confidence Bands
+
+The temporal omnibus module also supports optional
+[simultaneous confidence bands](code/residual_contrast/analysis/wm_population_omnibus/README_simultaneous_bands.md)
+at the observed lags. Set `cfg.runSimultaneousBands=true` to add jointly
+calibrated, centered whole-subject bootstrap-t bands without changing the
+omnibus statistic. The four-category driver corrects jointly across all
+489 x 4 x 41 sampled cells within each HRF model.
+
+## Linear-SVM Regional Importance and Feature Selection
+
+The existing linear-SVM Stage A supports optional OOB regional accuracy loss
+under within-subject condition half-swaps. See the
+[regional importance guide](code/residual_contrast/core/README_regional_importance.md)
+for execution, interpretation and matching contrasts when comparing with
+population omnibus tests and simultaneous bands. Optional nested SVM-RFE
+selects the region count within subject-grouped inner folds, retaining the
+all-feature baseline for an OOB accuracy comparison. It exports selection
+frequencies and includes a JHPCE launcher for the three HRF models. Importance
+and selection stability do not establish regional statistical significance.
+
 ## WM ROI Influence Elastic-Net Module
 
 The separate module in `code/residual_contrast/analysis/wm_roi_influence` identifies stable, high-confidence influential candidate parcels for WM residual interaction contrasts without modifying the existing linear-SVM pipeline.

@@ -30,8 +30,9 @@ saveOutputs=cfg.saveOutputs;
 matFile=fullfile(cfg.outputDir,'temporal_omnibus_results.mat');
 csvFile=fullfile(cfg.outputDir,'temporal_omnibus_roi_summary.csv');
 bootFile=fullfile(cfg.outputDir,'omnibus_sensitivity.csv');
+bandFile=fullfile(cfg.outputDir,'simultaneous_confidence_bands.csv');
 if saveOutputs
-    assert(~isfile(matFile)&&~isfile(csvFile)&&~isfile(bootFile), ...
+    assert(~isfile(matFile)&&~isfile(csvFile)&&~isfile(bootFile)&&~isfile(bandFile), ...
         'Refusing to overwrite existing analysis outputs. Choose a new outputDir.');
 end
 a=load(cfg.dataFile,'Results');
@@ -66,6 +67,15 @@ if isfield(results,'sensitivity')
     results.sensitivity.table.atlas_roi_index=mapping.atlas_roi_index;
     results.sensitivity.table.category=mapping.category;
 end
+if isfield(results,'simultaneousBands')
+    rows=results.simultaneousBands.table.test_index;
+    results.simultaneousBands.table.atlas_roi_index=mapping.atlas_roi_index(rows);
+    results.simultaneousBands.table.category=mapping.category(rows);
+    results.categoryBandCounts=table(["body";"faces";"places";"tools"], ...
+        sum(reshape(any(results.simultaneousBands.positive | ...
+        results.simultaneousBands.negative,2),489,4),1)', ...
+        'VariableNames',{'category','regions_with_supported_lags'});
+end
 if saveOutputs
     if ~isfolder(cfg.outputDir), mkdir(cfg.outputDir); end
     results.outputFiles.mat=matFile; results.outputFiles.csv=csvFile;
@@ -73,6 +83,10 @@ if saveOutputs
     if isfield(results,'sensitivity')
         results.outputFiles.sensitivityCSV=bootFile;
         writetable(results.sensitivity.table,bootFile);
+    end
+    if isfield(results,'simultaneousBands')
+        results.outputFiles.simultaneousBandsCSV=bandFile;
+        writetable(results.simultaneousBands.table,bandFile);
     end
     save(matFile,'results','-v7.3');
 end

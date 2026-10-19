@@ -15,7 +15,8 @@ Results=randn(489,41,7,8); Results(2,3,1,5)=NaN;
 save(fullfile(scratch,'source.mat'),'Results');
 cfg=struct('dataFile',fullfile(scratch,'source.mat'),'outputDir',fullfile(scratch,'out'), ...
     'smokeTest',true,'nPerm',17,'seed',129,'verbose',false,'saveOutputs',true, ...
-    'runDiagnostics',true,'nBootstrap',7);
+    'runDiagnostics',true,'nBootstrap',7,'runSimultaneousBands',true, ...
+    'scb',struct('nBootstrap',99,'minSubjects',2));
 r=run_wm_load_omnibus(cfg);
 assert(numel(r.p_raw)==1956);
 assert(isequal(r.p_holm,holm_adjust(r.p_raw)));
@@ -30,6 +31,14 @@ assert(isequal(r.sensitivity.table.bootstrap_p_holm, ...
     holm_adjust(r.sensitivity.table.bootstrap_p_raw)));
 a=load(r.outputFiles.mat,'results'); assert(isequal(a.results.testMapping,r.testMapping));
 assert(isfile(r.outputFiles.csv));
+assert(isfile(r.outputFiles.simultaneousBandsCSV));
+assert(r.simultaneousBands.plannedCellCount==489*4*41);
+assert(height(r.simultaneousBands.table)==489*4*41);
+rows=r.simultaneousBands.table.test_index;
+assert(isequal(r.simultaneousBands.table.category,r.testMapping.category(rows)));
+assert(isequal(r.simultaneousBands.table.atlas_roi_index,r.testMapping.atlas_roi_index(rows)));
+assert(r.simultaneousBands.table.effective_n(42)==6);
+assert(isequal(a.results.simultaneousBands.lower,r.simultaneousBands.lower));
 blocked=false;
 try, run_wm_load_omnibus(cfg); catch ME, blocked=contains(ME.message,'overwrite'); end
 assert(blocked);

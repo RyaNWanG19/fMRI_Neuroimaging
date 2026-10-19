@@ -78,6 +78,15 @@ this increases runtime. Request additional Slurm time if needed. Results go
 under `data/task_residual/wm_load_omnibus/AllFourCategory_LoadDiff/<model>/job_<id>`.
 Full cluster jobs are not submitted automatically by the local implementation.
 
+## Optional simultaneous confidence bands
+
+Set `cfg.runSimultaneousBands=true` and optionally
+`cfg.scb.nBootstrap=9999` to add centered whole-subject bootstrap-t
+bands, jointly calibrated across all 489 x 4 x 41 sampled cells per model.
+The omnibus results remain unchanged. See
+[method, outputs, plotting and assumptions](README_simultaneous_bands.md).
+JHPCE: `RUN_SIMULTANEOUS_BANDS=1 SCB_NBOOTSTRAP=9999`.
+
 ## Verification
 
 ```matlab

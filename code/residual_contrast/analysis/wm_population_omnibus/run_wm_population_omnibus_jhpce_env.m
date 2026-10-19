@@ -53,6 +53,10 @@ cfg.resampling.nullSymmetryVerified = env_flag('NULL_SYMMETRY_VERIFIED');
 cfg.resampling.nullSymmetryAssumed = env_flag('NULL_SYMMETRY_ASSUMED');
 cfg.resampling.verificationNote = getenv('RESAMPLING_VERIFICATION_NOTE');
 cfg.runDiagnostics = env_flag('RUN_DIAGNOSTICS');
+cfg.runSimultaneousBands = env_flag('RUN_SIMULTANEOUS_BANDS');
+if ~isempty(getenv('SCB_NBOOTSTRAP'))
+    cfg.scb.nBootstrap = str2double(getenv('SCB_NBOOTSTRAP'));
+end
 if ~isempty(getenv('NBOOTSTRAP'))
     cfg.nBootstrap = str2double(getenv('NBOOTSTRAP'));
 end

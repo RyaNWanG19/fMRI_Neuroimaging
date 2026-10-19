@@ -275,6 +275,9 @@ results.outputFiles = struct();
 if cfg.runDiagnostics
     results.sensitivity = omnibus_sensitivity(D, results);
 end
+if cfg.runSimultaneousBands
+    results.simultaneousBands = simultaneous_confidence_bands(D, results);
+end
 
 if cfg.saveOutputs
     results = save_outputs(results);
@@ -302,6 +305,7 @@ cfg = set_default(cfg, 'curvesPerPage', 12);
 cfg = set_default(cfg, 'storePermutationStatistics', false);
 cfg = set_default(cfg, 'storePermutationSigns', false);
 cfg = set_default(cfg, 'runDiagnostics', false);
+cfg = set_default(cfg, 'runSimultaneousBands', false);
 cfg = set_default(cfg, 'nBootstrap', 99999);
 validateattributes(cfg.nBootstrap, {'numeric'}, {'scalar','integer','positive'});
 if ~isfield(cfg, 'resampling') || ~isstruct(cfg.resampling)
@@ -440,6 +444,8 @@ rankFile = fullfile(cfg.outputDir, 'ranked_roi_omnibus_evidence.png');
 protected = {matFile, csvFile};
 diagnosticFile = fullfile(cfg.outputDir, 'omnibus_sensitivity.csv');
 if isfield(results, 'sensitivity'), protected{end+1} = diagnosticFile; end
+bandFile = fullfile(cfg.outputDir, 'simultaneous_confidence_bands.csv');
+if isfield(results, 'simultaneousBands'), protected{end+1} = bandFile; end
 if cfg.makePlots
     protected{end+1} = rankFile; %#ok<AGROW>
 end
@@ -454,6 +460,10 @@ results.outputFiles.csv = csvFile;
 if isfield(results, 'sensitivity')
     writetable(results.sensitivity.table, diagnosticFile);
     results.outputFiles.sensitivityCSV = diagnosticFile;
+end
+if isfield(results, 'simultaneousBands')
+    writetable(results.simultaneousBands.table, bandFile);
+    results.outputFiles.simultaneousBandsCSV = bandFile;
 end
 if cfg.makePlots
     make_rank_plot(results, rankFile);
@@ -508,7 +518,20 @@ for page = 1:nPages
         r = idx(j);
         ax = nexttile(tl);
         hold(ax, 'on');
-        if results.config.includePointwiseBands
+        if isfield(results, 'simultaneousBands')
+            lo = results.simultaneousBands.lower(r, :);
+            hi = results.simultaneousBands.upper(r, :);
+            finiteBand = isfinite(lo) & isfinite(hi);
+            % Separate contiguous finite segments; never bridge unbounded cells.
+            edges = diff([false finiteBand false]);
+            starts = find(edges == 1); stops = find(edges == -1)-1;
+            for seg = 1:numel(starts)
+                ii = starts(seg):stops(seg);
+                ts = results.timeSec(ii);
+                fill(ax, [ts; flipud(ts)], [lo(ii)'; flipud(hi(ii)')], ...
+                    [0.75 0.85 0.95], 'EdgeColor', 'none', 'FaceAlpha', 0.55);
+            end
+        elseif results.config.includePointwiseBands
             se = results.sd_D(r, :) ./ sqrt(results.effectiveN(r));
             lo = results.mean_D(r, :) - 1.96 .* se;
             hi = results.mean_D(r, :) + 1.96 .* se;
@@ -524,7 +547,9 @@ for page = 1:nPages
             'Interpreter', 'none');
         grid(ax, 'on');
     end
-    if results.config.includePointwiseBands
+    if isfield(results, 'simultaneousBands')
+        title(tl, 'Joint simultaneous bands at sampled lags; full planned family, per HRF model');
+    elseif results.config.includePointwiseBands
         title(tl, ['Significant ROI trajectories; shaded 95% pointwise descriptive bands ' ...
             '(not simultaneous or selection-adjusted)']);
     else

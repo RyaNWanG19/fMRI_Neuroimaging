@@ -1,4 +1,6 @@
-function PredictContrast_WM(DATA_FILE, OUTDIR)
+function PredictContrast_WM(DATA_FILE, OUTDIR, cfg)
+
+if nargin < 3, cfg = struct(); end
 
 if nargin<2 || isempty(OUTDIR), OUTDIR = fullfile(pwd,'outputs'); end
 if ~exist(OUTDIR,'dir'), mkdir(OUTDIR); end
@@ -36,7 +38,7 @@ AlreadyCanonical = true;
 save(temp_file, 'Results','AlreadyCanonical','-v7.3');
 
 try
-    run_observed_stage_flexible(temp_file, OUTDIR, COMP2, cond_labels, 'WM_Interaction');
+    run_observed_stage_flexible(temp_file, OUTDIR, COMP2, cond_labels, 'WM_Interaction', cfg);
 catch ME
     if exist(temp_file,'file'), delete(temp_file); end
     rethrow(ME);
