@@ -56,6 +56,9 @@ sample size for the chosen joint bootstrap approximation. They do not require nu
 sign symmetry. Running both analyses together still requires the existing
 symmetry gate for the omnibus test. Family-related subjects need a justified
 dependence-aware method; changing that gate does not implement one.
+Subject independence is assumed by the analysis owner and recorded as an
+assumption. No `INDEPENDENT_SUBJECTS_VERIFIED` flag or verification note is
+required to execute either analysis.
 
 Zero-variance cells, cells with nonfinite uncertainty, and tests below
 minSubjects receive `[-Inf, Inf]` with explicit status. They never produce
@@ -74,10 +77,8 @@ bias, source missing-data coding, or raw-scan autocorrelation modeling.
 addpath('code/residual_contrast/analysis/wm_population_omnibus');
 cfg = struct('hrfModelName','cHRF','runSimultaneousBands',true);
 cfg.scb = struct('nBootstrap',9999);
-% Set these ONLY using documented evidence / accepted assumptions:
-cfg.resampling.independentSubjectsVerified = true;
+% Subject independence is assumed by default; accept omnibus null symmetry:
 cfg.resampling.nullSymmetryAssumed = true; % for the omnibus, not the bands
-cfg.resampling.verificationNote = 'Replace with actual independence evidence and symmetry assumption';
 results = run_wm_load_omnibus(cfg);
 ```
 
@@ -94,8 +95,8 @@ assumptions verified. Smoke-test band crossings must not be reported as
 inferential findings. The new code does not automatically submit any jobs.
 
 On JHPCE, add `RUN_SIMULTANEOUS_BANDS=1 SCB_NBOOTSTRAP=9999` to the existing
-load-difference or interaction launcher, preserving the required subject
-independence/symmetry environment settings. Use a fresh OUTPUT_ROOT/job
+load-difference or interaction launcher, preserving the omnibus null-symmetry
+environment setting. Independence needs no environment flag. Use a fresh OUTPUT_ROOT/job
 directory; existing result files are protected from overwriting.
 
 ## Outputs and interpretation

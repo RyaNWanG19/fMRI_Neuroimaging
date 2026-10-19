@@ -44,7 +44,12 @@ try, run_wm_load_omnibus(cfg); catch ME, blocked=contains(ME.message,'overwrite'
 assert(blocked);
 cfg.saveOutputs=false; cfg.smokeTest=false;
 blocked=false;
-try, run_wm_load_omnibus(cfg); catch ME, blocked=strcmp(ME.identifier,'temporal_omnibus_signflip:IndependenceUnresolved'); end
+try, run_wm_load_omnibus(cfg); catch ME, blocked=strcmp(ME.identifier,'temporal_omnibus_signflip:NullSymmetryUnresolved'); end
 assert(blocked);
+cfg.resampling=struct('nullSymmetryAssumed',true);
+assumed=run_wm_load_omnibus(cfg);
+assert(assumed.inferenceValid && assumed.config.resampling.independentSubjectsAssumed);
+assert(~assumed.config.resampling.independentSubjectsVerified);
+assert(assumed.simultaneousBands.inferenceValid);
 fprintf('All four-load-difference tests passed.\n');
 end

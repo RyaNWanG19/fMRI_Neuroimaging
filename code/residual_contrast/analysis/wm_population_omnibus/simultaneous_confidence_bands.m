@@ -24,6 +24,9 @@ function out = simultaneous_confidence_bands(D, primary)
 % Ineligible cells get [-Inf,Inf], never a spurious zero-width interval.
 
 cfg = primary.config;
+if ~isfield(cfg,'resampling'), cfg.resampling=struct(); end
+cfg.resampling=default(cfg.resampling,'independentSubjectsAssumed',true);
+cfg.resampling=default(cfg.resampling,'independentSubjectsVerified',false);
 if ~isfield(cfg,'scb'), cfg.scb = struct(); end
 scb = cfg.scb;
 scb = default(scb,'method','subject-bootstrap-t');
@@ -50,13 +53,7 @@ assert(numel(time)==nt && all(isfinite(time)) && all(diff(time)>0), ...
     'SCB time grid must be finite and strictly increasing.');
 mask = all(isfinite(D),3);
 assert(isequal(mask,primary.subjectMasks),'Complete-case masks do not match.');
-if strcmpi(cfg.runMode,'inference')
-    if ~isequal(cfg.resampling.independentSubjectsVerified,true) || ...
-            isempty(strtrim(char(string(cfg.resampling.verificationNote))))
-        error('simultaneous_confidence_bands:IndependenceUnresolved', ...
-            'Inferential bands require documented independent subject rows.');
-    end
-end
+% Independence is the owner's modeling assumption, not an execution gate.
 
 % Each test uses its fixed complete-case subjects. Zero-padding centers
 % preserves subject identity and overlap across every test in the family.
@@ -144,6 +141,7 @@ negative = eligible & upper<0;
 
 out = struct();
 out.method = scb.method;
+out.independentSubjectsAssumed = cfg.resampling.independentSubjectsAssumed;
 out.config = scb;
 out.alpha = cfg.alpha;
 out.criticalValue = q;
@@ -161,7 +159,8 @@ out.calibratedCellCount = nnz(eligible);
 out.correctionFamily = sprintf(['Joint two-sided bands across all %d planned tests x %d sampled lags; ' ...
     'ineligible cells unbounded. HRF model %s; no correction across models.'], ...
     m,nt,cfg.hrfModelName);
-out.inferenceValid = strcmpi(cfg.runMode,'inference') && isfinite(q) && any(eligible,'all');
+out.inferenceValid = strcmpi(cfg.runMode,'inference') && isfinite(q) && any(eligible,'all') && ...
+    (cfg.resampling.independentSubjectsAssumed || cfg.resampling.independentSubjectsVerified);
 out.inferenceStatus = "non-inferential_"+string(cfg.runMode);
 if out.inferenceValid
     out.inferenceStatus = "approximate_conditional_on_independent_subjects_and_regular_mean_estimation";

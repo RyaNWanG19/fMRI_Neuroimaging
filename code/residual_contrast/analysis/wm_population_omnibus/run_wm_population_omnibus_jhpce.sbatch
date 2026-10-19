@@ -90,16 +90,9 @@ if [[ "${SMOKE_TEST}" != "1" ]]; then
         echo "SUBJECT_IDS_FILE was specified but does not exist." >&2
         exit 2
     fi
-    if [[ "${INDEPENDENT_SUBJECTS_VERIFIED}" != "1" ]]; then
-        echo "Set INDEPENDENT_SUBJECTS_VERIFIED=1 only after verifying independent subject rows." >&2
-        exit 2
-    fi
+    # Subject independence is assumed by the analysis owner; no confirmation gate.
     if [[ "${NULL_SYMMETRY_VERIFIED}" != "1" && "${NULL_SYMMETRY_ASSUMED}" != "1" ]]; then
         echo "Set NULL_SYMMETRY_ASSUMED=1 to document the accepted modeling assumption." >&2
-        exit 2
-    fi
-    if [[ -z "${RESAMPLING_VERIFICATION_NOTE}" ]]; then
-        echo "RESAMPLING_VERIFICATION_NOTE is required for a full inferential run." >&2
         exit 2
     fi
 fi

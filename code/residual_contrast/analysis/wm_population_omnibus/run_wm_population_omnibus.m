@@ -8,11 +8,11 @@ function results = run_wm_population_omnibus(cfg)
 % then temporal_omnibus_signflip maps [ROI x time x subject] to canonical
 % [subject x ROI x time].
 %
-% Full inference requires documented independent rows; absent real IDs,
+% Subject independence is assumed by the analysis owner; absent real IDs,
 % row_001 etc. track exclusions within this file, not across models.
-%   cfg.resampling.independentSubjectsVerified = true;
+%   cfg.resampling.independentSubjectsAssumed = true; % default
 %   cfg.resampling.nullSymmetryAssumed = true;
-%   cfg.resampling.verificationNote = 'Independence confirmation; symmetry assumed';
+%   cfg.resampling.verificationNote = 'Independence assumed; symmetry assumed';
 %
 % Set cfg.smokeTest=true for a non-inferential small run.
 

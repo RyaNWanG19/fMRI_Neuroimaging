@@ -85,13 +85,9 @@ primary.config.resampling.nullSymmetryAssumed=false;
 inference=simultaneous_confidence_bands(D,primary);
 assert(inference.inferenceValid);
 primary.config.resampling.independentSubjectsVerified=false;
-blocked=false;
-try
-    simultaneous_confidence_bands(D,primary);
-catch ME
-    blocked=strcmp(ME.identifier,'simultaneous_confidence_bands:IndependenceUnresolved');
-end
-assert(blocked);
+primary.config.resampling.verificationNote='';
+assumed=simultaneous_confidence_bands(D,primary);
+assert(assumed.inferenceValid && assumed.independentSubjectsAssumed);
 
 % Default whole-subject bootstrap-t: exact reference with globally shared
 % subject draws and recomputed SE, including partially overlapping masks.

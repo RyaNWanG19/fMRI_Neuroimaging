@@ -22,7 +22,7 @@ function results = temporal_omnibus_signflip(D, subjectIDs, roiIDs, roiNames, ti
 %       inputDimensionOrder    e.g. 'roi-time-subject'
 %       runMode                'inference', 'smoke-test', or 'verification'
 %       resampling.scheme      must be 'independent-subject-signflip'
-%       resampling.independentSubjectsVerified (required true for inference)
+%       resampling.independentSubjectsAssumed (default true, owner assumption)
 %
 % Complete-case missingness is fixed separately for each ROI: a subject is
 % retained only if all analyzed times are finite. Untestable ROIs remain in
@@ -214,7 +214,7 @@ for r = find(hasObservedDegeneracy)'
 end
 
 inferenceValid = strcmpi(cfg.runMode, 'inference') && ...
-    cfg.resampling.independentSubjectsVerified && ...
+    (cfg.resampling.independentSubjectsVerified || cfg.resampling.independentSubjectsAssumed) && ...
     (cfg.resampling.nullSymmetryVerified || cfg.resampling.nullSymmetryAssumed);
 if inferenceValid
     inferenceStatus = "conditional_on_independence_and_null_symmetry";
@@ -313,9 +313,11 @@ if ~isfield(cfg, 'resampling') || ~isstruct(cfg.resampling)
 end
 cfg.resampling = set_default(cfg.resampling, 'scheme', 'independent-subject-signflip');
 cfg.resampling = set_default(cfg.resampling, 'independentSubjectsVerified', false);
+cfg.resampling = set_default(cfg.resampling, 'independentSubjectsAssumed', true);
 cfg.resampling = set_default(cfg.resampling, 'nullSymmetryVerified', false);
 cfg.resampling = set_default(cfg.resampling, 'nullSymmetryAssumed', false);
-cfg.resampling = set_default(cfg.resampling, 'verificationNote', '');
+cfg.resampling = set_default(cfg.resampling, 'verificationNote', ...
+    'Subject independence assumed by analysis owner; null symmetry recorded separately.');
 
 validateattributes(cfg.nPerm, {'numeric'}, {'scalar','integer','positive'});
 validateattributes(cfg.seed, {'numeric'}, {'scalar','integer','nonnegative'});
@@ -331,22 +333,12 @@ if ~strcmpi(cfg.resampling.scheme, 'independent-subject-signflip')
          'Only independent-subject-signflip is implemented.']);
 end
 if strcmpi(cfg.runMode, 'inference')
-    if ~isequal(cfg.resampling.independentSubjectsVerified, true)
-        error('temporal_omnibus_signflip:IndependenceUnresolved', ...
-            ['Full inference requires cfg.resampling.independentSubjectsVerified=true ', ...
-             'after verifying that rows are independent subjects (for example, an ', ...
-             'unrelated HCP sample). Use runMode=''smoke-test'' only for non-inferential checks.']);
-    end
     if ~isequal(cfg.resampling.nullSymmetryVerified, true) && ...
             ~isequal(cfg.resampling.nullSymmetryAssumed, true)
         error('temporal_omnibus_signflip:NullSymmetryUnresolved', ...
             ['Exact subject-level sign flipping also requires an appropriate ', ...
              'symmetry assumption for the paired-difference curves. Set ', ...
              'cfg.resampling.nullSymmetryAssumed=true to accept it as a documented assumption.']);
-    end
-    if isempty(strtrim(char(string(cfg.resampling.verificationNote))))
-        error('temporal_omnibus_signflip:MissingVerificationNote', ...
-            'Document the independence evidence in cfg.resampling.verificationNote.');
     end
 elseif ~any(strcmpi(cfg.runMode, {'smoke-test','verification'}))
     error('temporal_omnibus_signflip:InvalidRunMode', ...

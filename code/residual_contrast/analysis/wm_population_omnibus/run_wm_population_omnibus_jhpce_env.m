@@ -49,6 +49,7 @@ if ~isempty(getenv('SUBJECT_IDS_FILE'))
 end
 
 cfg.resampling.independentSubjectsVerified = env_flag('INDEPENDENT_SUBJECTS_VERIFIED');
+cfg.resampling.independentSubjectsAssumed = true;
 cfg.resampling.nullSymmetryVerified = env_flag('NULL_SYMMETRY_VERIFIED');
 cfg.resampling.nullSymmetryAssumed = env_flag('NULL_SYMMETRY_ASSUMED');
 cfg.resampling.verificationNote = getenv('RESAMPLING_VERIFICATION_NOTE');

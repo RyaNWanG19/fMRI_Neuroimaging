@@ -28,8 +28,9 @@ The driver verifies the repository's WM slots (0-back categories in 1--4 and
 2-back categories in 5--8), constructs a category load-difference interaction,
 and records the permutation to `[subject x ROI x time]`.
 
-The files do not contain real HCP IDs or family/dependence metadata. A full run
-requires documented confirmation that the rows are independent. Real IDs are
+The files do not contain real HCP IDs or family/dependence metadata. Subject
+independence is assumed by the analysis owner and recorded in results, without
+a separate confirmation gate. Real IDs are
 optional: absent IDs, row_001 etc. track observations within each model file.
 These labels do not establish matching subjects across models.
 
@@ -39,9 +40,9 @@ cfg = struct();
 cfg.hrfModelName = 'cHRF';
 cfg.contrastName = 'Body_LoadDiff_vs_Face_LoadDiff';
 % cfg.subjectIDs = subjectIDs; % optional aligned real IDs
-cfg.resampling.independentSubjectsVerified = true;
+% Subject independence is assumed by default, not marked empirically verified.
 cfg.resampling.nullSymmetryAssumed = true;
-cfg.resampling.verificationNote = 'Owner confirms distinct unrelated participants; null symmetry assumed';
+cfg.resampling.verificationNote = 'Subject independence assumed; null symmetry assumed';
 cfg.runDiagnostics = true;
 cfg.nBootstrap = 99999;
 results = run_wm_population_omnibus(cfg); % default B = 99,999

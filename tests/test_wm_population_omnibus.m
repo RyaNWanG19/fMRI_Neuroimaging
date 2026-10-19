@@ -14,15 +14,21 @@ baseCfg.resampling = struct('scheme', 'independent-subject-signflip', ...
     'independentSubjectsVerified', false, 'nullSymmetryVerified', false, ...
     'verificationNote', 'synthetic verification');
 
-%% Inferential mode refuses unresolved exchangeability assumptions.
+%% Independence is assumed; inferential mode still requires null symmetry.
 cfgBlocked = baseCfg;
 cfgBlocked.runMode = 'inference';
 try
     temporal_omnibus_signflip(randn(5, 2, 3), (1:5)', [], [], (0:2)', cfgBlocked);
     error('Expected unresolved-resampling check did not fire.');
 catch ME
-    assert(strcmp(ME.identifier, 'temporal_omnibus_signflip:IndependenceUnresolved'));
+    assert(strcmp(ME.identifier, 'temporal_omnibus_signflip:NullSymmetryUnresolved'));
 end
+cfgAssumed = cfgBlocked;
+cfgAssumed.resampling.nullSymmetryAssumed = true;
+cfgAssumed.resampling.verificationNote = '';
+assumed = temporal_omnibus_signflip(randn(12,2,3),(1:12)',[],[],(0:2)',cfgAssumed);
+assert(assumed.inferenceValid && assumed.config.resampling.independentSubjectsAssumed);
+assert(~assumed.config.resampling.independentSubjectsVerified);
 
 %% Optimized statistics equal direct loops.
 rng(1001, 'twister');

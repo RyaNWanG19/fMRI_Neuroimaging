@@ -17,8 +17,9 @@ still cancels. Nonsignificance does not demonstrate adequate model fit.
   after each sign flip. Statistic is sum of squared one-sample t statistics.
 - **Primary Holm family: 489 x 4 = 1956 hypotheses per HRF model.** No
   study-wide correction across the three HRF models is claimed.
-- Defaults: 99,999 permutations; alpha 0.05. Independence and null-symmetry
-  gates from the existing engine remain required for inference. The symmetry
+- Defaults: 99,999 permutations; alpha 0.05. Subject independence is assumed
+  by the owner; no independence confirmation gate is required. The null-symmetry
+  gate remains required for the omnibus test. The symmetry
   assumption concerns load-difference curves, not absolute residuals.
 - Optional `runDiagnostics=true` runs centered whole-curve bootstrap with the
   same 1956-test correction family. It is approximate, not an exact test.
@@ -42,10 +43,10 @@ for model = ["cHRF","cHRFderiv","sHRF"]
 end
 ```
 
-For a full local run use `smokeTest=false`, `nPerm=99999`, and explicitly set
-`cfg.resampling.independentSubjectsVerified=true`,
-`cfg.resampling.nullSymmetryAssumed=true`, and a nonempty
-`cfg.resampling.verificationNote` only when those statements are warranted.
+For a full local run use `smokeTest=false`, `nPerm=99999`, and
+`cfg.resampling.nullSymmetryAssumed=true` when that assumption is accepted.
+Subject independence defaults to assumed (`independentSubjectsAssumed=true`),
+without claiming it was verified. A custom `verificationNote` is optional.
 Real subject IDs can be passed in `cfg.subjectIDs`; otherwise IDs are ordinal
 row labels and cannot establish independence or cross-file subject identity.
 
@@ -64,11 +65,10 @@ SMOKE_TEST=1 NPERM=99 \
   sbatch code/residual_contrast/analysis/wm_population_omnibus/run_wm_load_omnibus_jhpce.sbatch
 ```
 
-Full run, only after confirming independent subjects and accepting symmetry:
+Full run under the owner's independence assumption and accepted null symmetry:
 
 ```bash
-INDEPENDENT_SUBJECTS_VERIFIED=1 NULL_SYMMETRY_ASSUMED=1 \
-  RESAMPLING_VERIFICATION_NOTE="Independent subjects confirmed by data owner; joint null sign symmetry of load-difference curves assumed" \
+NULL_SYMMETRY_ASSUMED=1 \
   SMOKE_TEST=0 NPERM=99999 \
   sbatch code/residual_contrast/analysis/wm_population_omnibus/run_wm_load_omnibus_jhpce.sbatch
 ```
