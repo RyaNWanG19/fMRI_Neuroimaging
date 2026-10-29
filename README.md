@@ -1,5 +1,19 @@
 This repository contains the analysis pipeline and code used for the thesis investigating systematic, task-dependent information within fMRI residuals. Using datasets from the Human Connectome Project (HCP), this project tests whether residuals contain structured information that can reliably predict task states.
 
+## Code-only cluster checkout
+
+Git tracks source code in `code/` and `functional_clustering/`, validation code
+in `tests/`, and run documentation. Data, generated results, figures,
+presentations, caches, and MATLAB project metadata stay local and are ignored.
+Untracking files does not remove copies already stored in older Git commits.
+
+Provision input data separately on the cluster. The JHPCE launchers accept
+`REPO_DIR`, `DATA_DIR`, and `OUTPUT_ROOT`; check the selected launcher's defaults
+and point `DATA_DIR` at the existing HRF `.mat` files. Scripts using the local
+defaults expect inputs under `data/task_residual/`. Create the launcher's log
+directory before submitting jobs. Git pulls do not supply datasets or installed
+MATLAB toolboxes.
+
 ## Paired-Contrast Tensor Decomposition (Option B)
 
 The separate [paired tensor module](code/residual_contrast/analysis/paired_tensor/README.md)

@@ -1,4 +1,37 @@
-# MATLAB & Simulink temporary files
+# Only source trees, validation code, and run documentation belong in Git.
+# Data, outputs, figures, project metadata, and other local root files stay local.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/code/
+!/functional_clustering/
+!/tests/
+
+# Research data and generated artifacts, including inside source directories.
+*.mat
+*.nii
+*.nii.gz
+*.h5
+*.hdf5
+*.csv
+*.tsv
+*.fig
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.tif
+*.tiff
+*.pdf
+*.pptx
+*.zip
+*.tar
+*.tar.gz
+*.log
+*.err
+
+# MATLAB temporary and local project files.
 *.asv
 *.autosave
 *~
@@ -6,31 +39,20 @@
 *.mex*
 *.slx.original
 *.rwd
-
-# MATLAB project files (optional, depends on team workflow)
 *.prj
 
-*.fig
-*.png
-
-# Generated analysis results. Keep research inputs and source files tracked.
-/data/**/*.csv
-/data/autocorrelation_results/*.mat
-/data/autocorrelation_results/*.nii
-/data/observed_residual_results/**/*.mat
-/data/task_residual/result_*.mat
-/data/task_residual/wm_pairdiff_model_permtests*.mat
-/data/task_residual/Body_LoadDiff_vs_Face_LoadDiff/**/*.mat
-/data/task_residual/jhpce_outputs_wm_population_omnibus_full/**/*.mat
-/data/task_residual/paired_tensor/**/*.mat
-/data/task_residual/wm_population_diagnostics_*/**/*.mat
-/data/task_residual/wm_region_clustering_outputs/**/*.mat
-/data/task_residual/wm_load_omnibus/
-/functional_clustering/WM_majority_overlap_results.mat
-/outputs/**/*.csv
-/outputs/**/*.mat
-/outputs/**/*.zip
-
-# Installed dependencies and temporary presentation snapshots.
+# Python, Node, editor, and OS caches/dependencies.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
 node_modules/
 .chart-data-*/
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
