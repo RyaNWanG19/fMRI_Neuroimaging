@@ -1,0 +1,164 @@
+<div id="svm-brain-lags">
+  <style>
+    #svm-brain-lags .brain-planes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-block:12px; }
+    #svm-brain-lags canvas { display:block; width:100%; height:auto; image-rendering:pixelated; }
+    #svm-brain-lags .plane-title { display:flex; justify-content:space-between; gap:8px; }
+    #svm-brain-lags .frequency-scale { height:10px; flex:1; background:linear-gradient(to right,var(--muted),var(--viz-series-1)); }
+    #svm-brain-lags .map-detail { min-height:2.5em; margin-top:8px; }
+    #svm-brain-lags .map-summary { margin-block:8px; }
+    @media(max-width:560px) { #svm-brain-lags .brain-planes { grid-template-columns:1fr; } }
+  </style>
+  <h3>Predictive regions across lags</h3>
+  <div class="viz-controls">
+    <label class="form-label">HRF model<select class="form-select" id="sbl-model"></select></label>
+    <label class="form-label">Load interaction<select class="form-select" id="sbl-contrast"></select></label>
+    <label class="form-label">Selection frequency<select class="form-select" id="sbl-metric"><option value="partial">Among reduced-subset fits</option><option value="all">Across all 100 fits</option></select></label>
+    <label class="form-label">Display threshold <output class="tabular-nums" id="sbl-threshold-value">80%</output><input class="form-range" id="sbl-threshold" type="range" min="0" max="100" step="5" value="80" aria-label="Selection frequency display threshold"></label>
+  </div>
+  <div class="viz-row">
+    <button class="btn" id="sbl-play" type="button">Play lags once</button>
+    <label class="form-label">Lag <output id="sbl-lag-value" class="tabular-nums">0.00 s</output></label>
+    <output class="text-small tabular-nums" id="sbl-lag-index">1 of 41</output>
+  </div>
+  <input class="form-range" id="sbl-lag" type="range" min="0" max="40" step="1" value="0" aria-label="Time lag in 0.72 second steps">
+  <div class="map-summary tabular-nums" id="sbl-summary">Loading brain maps…</div>
+  <div class="brain-planes">
+    <div>
+      <div class="plane-title"><span>L</span><span>Axial</span><span>R</span></div>
+      <canvas id="sbl-axial" role="img" aria-label="Axial brain map, neurological orientation"></canvas>
+      <label class="form-label">MNI z <output class="tabular-nums" id="sbl-z-value"></output><input class="form-range" id="sbl-z" type="range" min="0" value="46" aria-label="Axial slice MNI z coordinate"></label>
+    </div>
+    <div>
+      <div class="plane-title"><span>L</span><span>Coronal</span><span>R</span></div>
+      <canvas id="sbl-coronal" role="img" aria-label="Coronal brain map, neurological orientation"></canvas>
+      <label class="form-label">MNI y <output class="tabular-nums" id="sbl-y-value"></output><input class="form-range" id="sbl-y" type="range" min="0" value="56" aria-label="Coronal slice MNI y coordinate"></label>
+    </div>
+    <div>
+      <div class="plane-title"><span>P</span><span>Sagittal</span><span>A</span></div>
+      <canvas id="sbl-sagittal" role="img" aria-label="Sagittal brain map, posterior on left and anterior on right"></canvas>
+      <label class="form-label">MNI x <output class="tabular-nums" id="sbl-x-value"></output><input class="form-range" id="sbl-x" type="range" min="0" value="31" aria-label="Sagittal slice MNI x coordinate"></label>
+    </div>
+  </div>
+  <div class="viz-row text-small"><span>0%</span><div class="frequency-scale" aria-hidden="true"></div><span>100%</span><span>Selection frequency</span></div>
+  <div class="map-detail text-small" id="sbl-detail">Hover or tap a parcel to inspect it.</div>
+  <div class="text-small text-muted">Exploratory frequency threshold. Reduced-fit display requires ≥20 fits. 2 mm Canlab2018 ordinal mapping; historical atlas version unverified.</div>
+  <div class="sr-only" id="sbl-announcement" aria-live="polite"></div>
+  <script type="application/json" id="sbl-data">__PAYLOAD__</script>
+  <script>
+  (() => {
+    const root=document.getElementById('svm-brain-lags');
+    const el=id=>root.querySelector('#sbl-'+id);
+    const D=JSON.parse(el('data').textContent);
+    let atlas, anatomy, numerators, denominators, ready=false, timer=null, currentROI=0;
+    const state={model:0,contrast:0,metric:'partial',threshold:80,lag:0,x:31,y:56,z:46};
+    const [nx,ny,nz]=D.shape;
+    const els={model:el('model'),contrast:el('contrast'),metric:el('metric'),threshold:el('threshold'),lag:el('lag'),x:el('x'),y:el('y'),z:el('z')};
+    function option(value,label) { const o=document.createElement('option');o.value=String(value);o.textContent=label;return o; }
+    D.models.forEach((v,i)=>els.model.appendChild(option(i,v)));
+    D.contrasts.forEach((v,i)=>els.contrast.appendChild(option(i,v.replaceAll('_LoadDiff','').replace('_vs_',' versus '))));
+    els.x.max=nx-1; els.y.max=ny-1; els.z.max=nz-1;
+    const cell=()=>((state.model*6+state.contrast)*41+state.lag);
+    const volumeIndex=(x,y,z)=>(x*ny+y)*nz+z;
+    const coord=(axis,index)=>D.affine[axis][3]+D.affine[axis][axis]*index;
+    function den() { return state.metric==='all'?100:denominators[cell()]; }
+    function frequency(roi) {
+      if(!roi)return NaN;
+      const n=numerators[cell()*489+roi-1], d=denominators[cell()];
+      return state.metric==='all'?(n+100-d)/100:(d?n/d:NaN);
+    }
+    function tokenRGB(name) {
+      const probe=document.createElement('span'); probe.style.color='var('+name+')'; root.appendChild(probe);
+      const value=getComputedStyle(probe).color; probe.remove();
+      const cv=document.createElement('canvas');cv.width=1;cv.height=1;
+      const ctx=cv.getContext('2d');ctx.fillStyle=value;ctx.fillRect(0,0,1,1);
+      return Array.from(ctx.getImageData(0,0,1,1).data).slice(0,3);
+    }
+    const mix=(a,b,v)=>a.map((c,i)=>Math.round(c*(1-v)+b[i]*v));
+    function palette() { return {bg:tokenRGB('--background'), fg:tokenRGB('--foreground'), low:tokenRGB('--muted'), heat:tokenRGB('--viz-series-1')}; }
+    function planePoint(which,x,y) {
+      if(which==='axial')return [x,ny-1-y,state.z];
+      if(which==='coronal')return [x,state.y,nz-1-y];
+      return [state.x,x,nz-1-y];
+    }
+    function drawPlane(which,colors) {
+      const cv=el(which),w=which==='sagittal'?ny:nx,h=which==='axial'?ny:nz;
+      cv.width=w;cv.height=h;
+      const ctx=cv.getContext('2d'),im=ctx.createImageData(w,h), adequate=state.metric==='all'||den()>=20;
+      let visible=0;
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++) {
+        const xyz=planePoint(which,x,y),idx=volumeIndex(...xyz),roi=atlas[idx];
+        const gray=anatomy[idx]/31;
+        let color=mix(colors.bg,colors.fg,gray*.85);
+        const f=frequency(roi);
+        if(roi&&adequate&&f+1e-12>=state.threshold/100) { color=mix(colors.low,colors.heat,f); visible++; }
+        const p=(y*w+x)*4;im.data[p]=color[0];im.data[p+1]=color[1];im.data[p+2]=color[2];im.data[p+3]=255;
+      }
+      ctx.putImageData(im,0,0);cv.dataset.activePixels=String(visible);
+      cv.setAttribute('aria-label',which+' brain map at '+D.times[state.lag].toFixed(2)+' seconds; '+visible+' colored preview pixels');
+    }
+    function detail(roi) {
+      if(!roi) { el('detail').textContent='Hover or tap a parcel to inspect it.';return; }
+      const f=frequency(roi),visible=(state.metric==='all'||den()>=20)&&f+1e-12>=state.threshold/100;
+      el('detail').textContent='ROI '+roi+' · '+D.labels[roi-1]+' · '+D.networks[roi-1]+' · '+(100*f).toFixed(1)+'% selected'+(visible?' · displayed':' · below display rule');
+    }
+    function draw(announce=false) {
+      if(!ready)return;
+      Object.keys(els).forEach(k=>{els[k].value=state[k];});
+      const reduced=denominators[cell()],adequate=state.metric==='all'||reduced>=20;
+      let selected=0;for(let r=1;r<=489;r++)if(adequate&&frequency(r)+1e-12>=state.threshold/100)selected++;
+      el('lag-value').textContent=D.times[state.lag].toFixed(2)+' s';el('lag-index').textContent=(state.lag+1)+' of 41';
+      el('threshold-value').textContent=state.threshold+'%';
+      ['x','y','z'].forEach((k,i)=>{el(k+'-value').textContent=coord(i,state[k]).toFixed(0)+' mm';});
+      const acc=D.performance[state.model];
+      el('summary').textContent=adequate ? selected+' / 489 regions displayed · '+reduced+' reduced fits / 100 · selected-model accuracy '+acc.selected[state.contrast][state.lag].toFixed(2)+'%' : 'Insufficient reduced fits ('+reduced+' / 100); map withheld';
+      root.dataset.selectedCount=String(selected);root.dataset.reducedFits=String(reduced);root.dataset.lagSeconds=String(D.times[state.lag]);
+      const colors=palette();['axial','coronal','sagittal'].forEach(p=>drawPlane(p,colors));detail(currentROI);
+      if(announce)el('announcement').textContent=D.models[state.model]+', '+D.contrasts[state.contrast]+', '+D.times[state.lag].toFixed(2)+' seconds. '+selected+' regions displayed.';
+    }
+    function stop() { if(timer!==null)clearInterval(timer);timer=null;el('play').textContent='Play lags once'; }
+    function persist() {
+      if(!window.openai||!window.openai.setWidgetState)return;
+      window.openai.setWidgetState({modelContent:{model:D.models[state.model],contrast:D.contrasts[state.contrast],lagSeconds:D.times[state.lag],metric:state.metric,thresholdPercent:state.threshold},privateContent:{...state}}).catch(()=>{});
+    }
+    function applySaved(saved) {
+      const v=saved&&saved.privateContent;if(!v)return;
+      ['model','contrast','threshold','lag','x','y','z'].forEach(k=>{if(Number.isInteger(v[k]))state[k]=v[k];});
+      if(v.metric==='partial'||v.metric==='all')state.metric=v.metric;
+      state.model=Math.max(0,Math.min(2,state.model));state.contrast=Math.max(0,Math.min(5,state.contrast));
+      state.lag=Math.max(0,Math.min(40,state.lag));state.threshold=Math.max(0,Math.min(100,state.threshold));
+      state.x=Math.max(0,Math.min(nx-1,state.x));state.y=Math.max(0,Math.min(ny-1,state.y));state.z=Math.max(0,Math.min(nz-1,state.z));
+    }
+    Object.entries(els).forEach(([k,e])=>{
+      e.addEventListener('input',()=>{stop();state[k]=k==='metric'?e.value:Number(e.value);draw(false);});
+      e.addEventListener('change',()=>{draw(true);persist();});
+    });
+    ['axial','coronal','sagittal'].forEach(which=>{
+      const cv=el(which);
+      function inspect(event) {
+        const box=cv.getBoundingClientRect(),x=Math.floor((event.clientX-box.left)/box.width*cv.width),y=Math.floor((event.clientY-box.top)/box.height*cv.height);
+        if(x<0||y<0||x>=cv.width||y>=cv.height)return;
+        currentROI=atlas[volumeIndex(...planePoint(which,x,y))];detail(currentROI);
+      }
+      cv.addEventListener('pointermove',inspect);cv.addEventListener('click',inspect);
+    });
+    el('play').addEventListener('click',()=>{
+      if(timer!==null){stop();persist();return;}
+      if(matchMedia('(prefers-reduced-motion: reduce)').matches){state.lag=Math.min(40,state.lag+1);draw(true);persist();return;}
+      if(state.lag===40)state.lag=0;
+      el('play').textContent='Pause';draw(false);
+      timer=setInterval(()=>{state.lag++;draw(false);if(state.lag>=40){stop();persist();}},450);
+    });
+    const themeObserver=new MutationObserver(()=>draw(false));themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['class','style','data-theme']});
+    window.addEventListener('openai:set_globals',event=>{const saved=event.detail&&event.detail.globals&&event.detail.globals.widgetState;if(saved){stop();applySaved(saved);draw(false);}});
+    async function unpack(encoded) {
+      const bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));
+      return await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+    }
+    Promise.all([unpack(D.atlas),unpack(D.anatomy),unpack(D.numerator),unpack(D.denominator)]).then(([a,t,n,d])=>{
+      atlas=new Uint16Array(a);anatomy=new Uint8Array(t);numerators=new Uint8Array(n);denominators=new Uint8Array(d);
+      if(atlas.length!==nx*ny*nz||anatomy.length!==atlas.length||numerators.length!==3*6*41*489||denominators.length!==3*6*41)throw Error('Map dimensions do not match');
+      applySaved(window.openai&&window.openai.widgetState);ready=true;draw(false);root.dataset.ready='true';
+    }).catch(error=>{el('summary').textContent='Brain-map data could not load: '+error.message;el('summary').setAttribute('role','alert');});
+  })();
+  </script>
+</div>
